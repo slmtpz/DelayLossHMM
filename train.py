@@ -1,4 +1,5 @@
 from DelayLossHMM import DelayLossHMM
+from parser import data_generator
 
 ### Setting Input Parameters
 
@@ -6,7 +7,7 @@ from DelayLossHMM import DelayLossHMM
 N = 2
 
 # training sequence
-y = [1, 1, 1]  # y1, y2, .. , yN
+y = data_generator()  # y1, y2, .. , yN
 
 # stopping parameter
 epsilon = 1  # TODO: set it to the right epsilon based on convergence rate for parameter likelihoods
