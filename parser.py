@@ -5,14 +5,16 @@ import random
 
 def data_generator():
     t = 1
-    t_p = [0.001, 0.009, 0.012]  # trend change prob, respectively prob of changing from stay, increase, decrease trends
+    c = 0
+    t_p = [0.99, 0.001, 0.99]  # trend change prob, respectively prob of changing from stay, increase, decrease trends
     s = 200  # starting value
-    e_p = 0.03  # loss probability
     data = np.ones(3000,dtype=int)
     for i in range(3000):
-        data[i] = t
+        c += t
+        c = min(max(c, 0), 9)
+        data[i] = c
         if random.random() < t_p[t]:
-            cands = [ 0, 1, 2]
+            cands = [-1, 0, 1]
             cands.remove(t)
             t = random.choice(cands)
     plt.plot(data)

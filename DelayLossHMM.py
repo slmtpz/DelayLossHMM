@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 
 class DelayLossHMM(object):
-    def __init__(self, N):
+    def __init__(self, N,O):
         self.S = N  # number of states
         ### Initialization Step
 
@@ -16,7 +16,9 @@ class DelayLossHMM(object):
         self.pi = np.random.rand(N)
 
         # emission matrix
-        self.B = np.random.rand(N, N)
+        self.B = np.random.rand(O, N) + np.eye(O,N)
+
+        self.R = self.B.shape[0]
 
         self.set_logs()
 
@@ -88,9 +90,14 @@ class DelayLossHMM(object):
 
             self.update_params(y,gamma,xi)
 
-    def viterbi(self):
-        seq = [1, 1, 1]
-        return seq
+    def viterbi_maxsum(self, y):
+        '''Vanilla implementation of Viterbi decoding via max-sum'''
+        '''This algorithm may fail to find the MAP trajectory as it breaks ties arbitrarily'''
+        log_alpha, log_alpha_pred = self.forward(y, maxm=True)
+        log_beta, log_beta_post = self.backward(y, maxm=True)
+
+        log_delta = log_alpha + log_beta_post
+        return np.argmax(log_delta, axis=0)
 
     ### Helpers
     def calculate_gamma(self, log_alpha, log_beta):
@@ -120,7 +127,6 @@ class DelayLossHMM(object):
     def update_params(self, y, gamma, xi):
         T = len(y)
 
-
         self.pi = gamma[:,0]
         gamma_i = np.sum(gamma,axis=1)
         a_star = np.sum(xi,axis=(2))
@@ -128,12 +134,12 @@ class DelayLossHMM(object):
             a_star[i, :] = np.divide(a_star[i, :], gamma_i)
         self.A = a_star
         for i in range(self.S):
-            for j in range(self.S):
+            for j in range(self.R):
                 sum=0
                 for t in range(T):
                     if y[t] == j:
                         sum += gamma[i, t]
-                self.B[i, j] = sum/gamma_i[i]
+                self.B[j, i] = sum/gamma_i[i]
 
         self.set_logs()
 
@@ -158,7 +164,6 @@ class DelayLossHMM(object):
         for i in range(self.S):
             self.A[:, i] = self.normalize(self.A[:, i]+self.EPSILON)
         self.pi = self.normalize(self.pi+self.EPSILON)
-        self.R = self.B.shape[0]
         self.logB = np.log(self.B)
         self.logA = np.log(self.A)
         self.logpi = np.log(self.pi)
@@ -181,7 +186,7 @@ class DelayLossHMM(object):
         return self.logB[y_k, :] + lp if not np.isnan(y_k) else lp
 
 
-hmm = DelayLossHMM(3)
+hmm = DelayLossHMM(10,10)
 
 y = data_generator()
 
@@ -190,4 +195,7 @@ hmm.baum_welch(y)
 y2, x = hmm.generate_sequence(3000)
 
 plt.plot(y2)
+plt.show()
+seq = hmm.viterbi_maxsum(y)
+plt.plot(seq)
 plt.show()
