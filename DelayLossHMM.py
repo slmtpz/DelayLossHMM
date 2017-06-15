@@ -1,6 +1,7 @@
 import numpy as np
-from parser import data_generator
+from parser import parse
 import matplotlib.pyplot as plt
+import matplotlib.pylab as pylab
 
 
 class DelayLossHMM(object):
@@ -11,12 +12,14 @@ class DelayLossHMM(object):
         self.EPSILON = 0.00001
 
         # transition probability matrix with each index being 1/N
-        self.A = np.random.rand(N, N)
+        self.A = np.random.rand(N, N) + 2*np.eye(N,N)
 
         self.pi = np.random.rand(N)
 
         # emission matrix
-        self.B = np.random.rand(O, N) + np.eye(O,N)
+        prior = np.eye(O,N)
+        prior[:,N-1] = 0.5
+        self.B = np.random.rand(O, N) + prior
 
         self.R = self.B.shape[0]
 
@@ -89,6 +92,14 @@ class DelayLossHMM(object):
             xi = self.calculate_xi(y, log_alpha, log_beta_post)
 
             self.update_params(y,gamma,xi)
+        self.pi = self.steady_state_probs()
+        self.set_logs()
+
+    def steady_state_probs(self):
+        log_alpha, log_alpha_pred = self.forward(y)
+        log_beta, log_beta_post = self.backward(y)
+        return self.normalize(np.sum(self.calculate_gamma(log_alpha, log_beta), axis=1))
+
 
     def viterbi_maxsum(self, y):
         '''Vanilla implementation of Viterbi decoding via max-sum'''
@@ -186,16 +197,42 @@ class DelayLossHMM(object):
         return self.logB[y_k, :] + lp if not np.isnan(y_k) else lp
 
 
-hmm = DelayLossHMM(10,10)
+hmm4 = DelayLossHMM(4,16)
+hmm3 = DelayLossHMM(3,16)
+hmm2 = DelayLossHMM(2,16)
 
-y = data_generator()
+y = parse('train1.txt')
+hmm2.baum_welch(y)
+hmm3.baum_welch(y)
+hmm4.baum_welch(y)
 
-hmm.baum_welch(y)
+seq, x = hmm3.generate_sequence(300)
 
-y2, x = hmm.generate_sequence(3000)
 
-plt.plot(y2)
-plt.show()
-seq = hmm.viterbi_maxsum(y)
+
 plt.plot(seq)
+plt.xlabel('time')
+plt.ylabel('delay level')
+pylab.title('Prediction')
+plt.show()
+
+seq = hmm2.viterbi_maxsum(y)
+plt.plot(seq)
+plt.xlabel('time')
+plt.ylabel('State Number')
+pylab.title('Output of the Viterbi Algorithm for 2 states')
+plt.show()
+
+seq = hmm3.viterbi_maxsum(y)
+plt.plot(seq)
+plt.xlabel('time')
+plt.ylabel('State Number')
+pylab.title('Output of the Viterbi Algorithm for 3 states')
+plt.show()
+
+seq = hmm4.viterbi_maxsum(y)
+plt.plot(seq)
+plt.xlabel('time')
+plt.ylabel('State Number')
+pylab.title('Output of the Viterbi Algorithm for 4 states')
 plt.show()
